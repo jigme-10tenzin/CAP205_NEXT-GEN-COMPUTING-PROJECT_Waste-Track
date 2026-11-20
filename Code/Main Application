@@ -1,0 +1,719 @@
+import { useState } from "react";
+import {
+  Truck,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  Plus,
+  Search,
+  Bell,
+  MapPin
+} from "lucide-react";
+
+import Sidebar from "./components/Sidebar";
+
+interface Schedule {
+  id: number;
+  location: string;
+  vehicle: string;
+  date: string;
+  time: string;
+}
+
+interface Complaint {
+  id: number;
+  citizen: string;
+  location: string;
+  description: string;
+  status: "Pending" | "Resolved";
+}
+
+interface Pickup {
+  id: number;
+  location: string;
+  vehicle: string;
+  status: "Completed" | "Missed" | "Pending";
+}
+
+function App() {
+  const [activePage, setActivePage] = useState("Dashboard");
+
+  const [schedules, setSchedules] = useState<Schedule[]>([
+    {
+      id: 1,
+      location: "Sector 12",
+      vehicle: "PB08-101",
+      date: "2026-11-20",
+      time: "08:30"
+    },
+    {
+      id: 2,
+      location: "Sector 15",
+      vehicle: "PB08-102",
+      date: "2026-11-20",
+      time: "09:00"
+    }
+  ]);
+
+  const [pickups, setPickups] = useState<Pickup[]>([
+    { id: 1, location: "Sector 12", vehicle: "PB08-101", status: "Completed" },
+    { id: 2, location: "Sector 15", vehicle: "PB08-102", status: "Missed" },
+    { id: 3, location: "Sector 18", vehicle: "PB08-103", status: "Pending" }
+  ]);
+
+  const [complaints, setComplaints] = useState<Complaint[]>([
+    {
+      id: 1,
+      citizen: "Rahul",
+      location: "Sector 15",
+      description: "Garbage not collected",
+      status: "Pending"
+    }
+  ]);
+
+  const [scheduleForm, setScheduleForm] = useState({
+    location: "",
+    vehicle: "",
+    date: "",
+    time: ""
+  });
+
+  const [pickupForm, setPickupForm] = useState({
+    location: "",
+    vehicle: "",
+    status: "Completed" as "Completed" | "Missed"
+  });
+
+  const [complaintForm, setComplaintForm] = useState({
+    citizen: "",
+    location: "",
+    description: ""
+  });
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const completed = pickups.filter(p => p.status === "Completed").length;
+  const missed = pickups.filter(p => p.status === "Missed").length;
+  const pending = pickups.filter(p => p.status === "Pending").length;
+  const resolved = complaints.filter(c => c.status === "Resolved").length;
+
+  const total = schedules.length;
+  const completionRate = total
+    ? Math.round((completed / total) * 100)
+    : 0;
+
+  const addSchedule = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    setSchedules(prev => [
+      ...prev,
+      { ...scheduleForm, id: Date.now() }
+    ]);
+
+    setPickups(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        location: scheduleForm.location,
+        vehicle: scheduleForm.vehicle,
+        status: "Pending"
+      }
+    ]);
+
+    setScheduleForm({
+      location: "",
+      vehicle: "",
+      date: "",
+      time: ""
+    });
+
+    alert("Schedule added successfully!");
+  };
+
+  const verifyPickup = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    setPickups(prev => [
+      {
+        id: Date.now(),
+        ...pickupForm
+      },
+      ...prev
+    ]);
+
+    setPickupForm({
+      location: "",
+      vehicle: "",
+      status: "Completed"
+    });
+
+    alert("Pickup verification submitted!");
+  };
+
+  const addComplaint = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    setComplaints(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        ...complaintForm,
+        status: "Pending"
+      }
+    ]);
+
+    setComplaintForm({
+      citizen: "",
+      location: "",
+      description: ""
+    });
+
+    alert("Complaint submitted successfully!");
+  };
+
+  const resolveComplaint = (id: number) => {
+    setComplaints(prev =>
+      prev.map(c =>
+        c.id === id ? { ...c, status: "Resolved" } : c
+      )
+    );
+  };
+
+  const updatePickup = (id: number, status: "Completed" | "Missed") => {
+    setPickups(prev =>
+      prev.map(p => p.id === id ? { ...p, status } : p)
+    );
+  };
+
+  const filteredPickups = pickups.filter(p =>
+    `${p.location} ${p.vehicle} ${p.status}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
+  const missedPickups = pickups.filter(p => p.status === "Missed");
+
+  return (
+    <div className="app-layout">
+
+      <Sidebar
+        activePage={activePage}
+        setActivePage={setActivePage}
+      />
+
+      <main className="main-content">
+
+        <header className="topbar">
+          <div>
+            <h1>{activePage}</h1>
+            <p>Smart Waste Collection Monitoring System</p>
+          </div>
+
+          <div className="top-actions">
+            <button className="icon-button" aria-label="Notifications">
+              <Bell size={20} />
+              {missed > 0 && <span className="notification-dot" />}
+            </button>
+
+            <div className="user-profile">
+              <div className="avatar">A</div>
+              <div>
+                <strong>Admin</strong>
+                <small>Supervisor</small>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* DASHBOARD */}
+
+        {activePage === "Dashboard" && (
+          <>
+            <div className="welcome">
+              <div>
+                <h2>Welcome to WasteTrack ♻</h2>
+                <p>Monitor and manage your waste collection operations.</p>
+              </div>
+            </div>
+
+            <div className="stats-grid">
+
+              <StatCard
+                title="Total Schedules"
+                value={total}
+                icon={<Truck />}
+                color="green"
+              />
+
+              <StatCard
+                title="Completed Pickups"
+                value={completed}
+                icon={<CheckCircle />}
+                color="blue"
+              />
+
+              <StatCard
+                title="Missed Pickups"
+                value={missed}
+                icon={<AlertTriangle />}
+                color="red"
+              />
+
+              <StatCard
+                title="Pending Pickups"
+                value={pending}
+                icon={<Clock />}
+                color="orange"
+              />
+
+            </div>
+
+            <div className="content-card">
+              <div className="card-heading">
+                <h3>Recent Collection Activity</h3>
+                <button
+                  className="text-button"
+                  onClick={() => setActivePage("Verification")}
+                >
+                  View All
+                </button>
+              </div>
+
+              <PickupTable pickups={pickups.slice(0, 5)} />
+            </div>
+
+            <div className="content-card">
+              <h3>Collection Performance</h3>
+              <div className="performance">
+                <div className="progress-track">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${Math.min(completionRate, 100)}%` }}
+                  />
+                </div>
+                <strong>{completionRate}%</strong>
+              </div>
+              <p className="muted">Completed pickups compared with scheduled pickups.</p>
+            </div>
+          </>
+        )}
+
+        {/* SCHEDULE */}
+
+        {activePage === "Schedule" && (
+          <>
+            <div className="content-card">
+              <h3>Add Collection Schedule</h3>
+
+              <form onSubmit={addSchedule} className="form-grid">
+
+                <FormInput
+                  label="Collection Location"
+                  value={scheduleForm.location}
+                  onChange={v => setScheduleForm({ ...scheduleForm, location: v })}
+                  placeholder="Enter location"
+                />
+
+                <FormInput
+                  label="Vehicle Number"
+                  value={scheduleForm.vehicle}
+                  onChange={v => setScheduleForm({ ...scheduleForm, vehicle: v })}
+                  placeholder="PB08-1234"
+                />
+
+                <FormInput
+                  label="Collection Date"
+                  type="date"
+                  value={scheduleForm.date}
+                  onChange={v => setScheduleForm({ ...scheduleForm, date: v })}
+                />
+
+                <FormInput
+                  label="Collection Time"
+                  type="time"
+                  value={scheduleForm.time}
+                  onChange={v => setScheduleForm({ ...scheduleForm, time: v })}
+                />
+
+                <button className="primary-button form-submit">
+                  <Plus size={17} /> Add Schedule
+                </button>
+
+              </form>
+            </div>
+
+            <div className="content-card">
+              <h3>Scheduled Collections</h3>
+
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Location</th>
+                      <th>Vehicle</th>
+                      <th>Date</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {schedules.map(s => (
+                      <tr key={s.id}>
+                        <td>{s.location}</td>
+                        <td>{s.vehicle}</td>
+                        <td>{s.date}</td>
+                        <td>{s.time}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* VERIFICATION */}
+
+        {activePage === "Verification" && (
+          <>
+            <div className="content-card">
+              <h3>Verify Waste Collection</h3>
+
+              <form onSubmit={verifyPickup} className="form-grid">
+
+                <FormInput
+                  label="Location"
+                  value={pickupForm.location}
+                  onChange={v => setPickupForm({ ...pickupForm, location: v })}
+                  placeholder="Enter location"
+                />
+
+                <FormInput
+                  label="Vehicle Number"
+                  value={pickupForm.vehicle}
+                  onChange={v => setPickupForm({ ...pickupForm, vehicle: v })}
+                  placeholder="Enter vehicle number"
+                />
+
+                <div className="form-group">
+                  <label>Pickup Status</label>
+                  <select
+                    value={pickupForm.status}
+                    onChange={e =>
+                      setPickupForm({
+                        ...pickupForm,
+                        status: e.target.value as "Completed" | "Missed"
+                      })
+                    }
+                    required
+                  >
+                    <option value="Completed">Completed</option>
+                    <option value="Missed">Missed</option>
+                  </select>
+                </div>
+
+                <button className="primary-button form-submit">
+                  Submit Verification
+                </button>
+
+              </form>
+            </div>
+
+            <div className="content-card">
+              <div className="card-heading">
+                <h3>Pickup Records</h3>
+
+                <div className="search-box">
+                  <Search size={17} />
+                  <input
+                    placeholder="Search records..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <PickupTable pickups={filteredPickups} />
+            </div>
+          </>
+        )}
+
+        {/* COMPLAINTS */}
+
+        {activePage === "Complaints" && (
+          <>
+            <div className="content-card">
+              <h3>Submit Citizen Complaint</h3>
+
+              <form onSubmit={addComplaint} className="form-grid">
+
+                <FormInput
+                  label="Citizen Name"
+                  value={complaintForm.citizen}
+                  onChange={v => setComplaintForm({ ...complaintForm, citizen: v })}
+                  placeholder="Enter citizen name"
+                />
+
+                <FormInput
+                  label="Location"
+                  value={complaintForm.location}
+                  onChange={v => setComplaintForm({ ...complaintForm, location: v })}
+                  placeholder="Enter location"
+                />
+
+                <div className="form-group full-width">
+                  <label>Complaint Description</label>
+                  <textarea
+                    required
+                    value={complaintForm.description}
+                    onChange={e =>
+                      setComplaintForm({
+                        ...complaintForm,
+                        description: e.target.value
+                      })
+                    }
+                    placeholder="Describe the missed pickup..."
+                  />
+                </div>
+
+                <button className="primary-button form-submit">
+                  Submit Complaint
+                </button>
+
+              </form>
+            </div>
+
+            <div className="content-card">
+              <h3>Complaint Records</h3>
+
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Citizen</th>
+                      <th>Location</th>
+                      <th>Description</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {complaints.map(c => (
+                      <tr key={c.id}>
+                        <td>{c.citizen}</td>
+                        <td>{c.location}</td>
+                        <td>{c.description}</td>
+                        <td><StatusBadge status={c.status} /></td>
+                        <td>
+                          {c.status === "Pending" && (
+                            <button
+                              className="small-button"
+                              onClick={() => resolveComplaint(c.id)}
+                            >
+                              Resolve
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ALERTS */}
+
+        {activePage === "Alerts" && (
+          <div className="content-card">
+            <h3>Missed Pickup Alerts</h3>
+
+            {missedPickups.length === 0 ? (
+              <p className="muted">No missed pickup alerts.</p>
+            ) : (
+              missedPickups.map(p => (
+                <div className="alert-box" key={p.id}>
+                  <AlertTriangle color="#dc4444" />
+                  <div>
+                    <strong>Missed Collection - {p.location}</strong>
+                    <p>Vehicle {p.vehicle} has a missed pickup record.</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* REPORTS */}
+
+        {activePage === "Reports" && (
+          <>
+            <div className="stats-grid">
+              <StatCard
+                title="Total Schedules"
+                value={total}
+                icon={<Truck />}
+                color="green"
+              />
+
+              <StatCard
+                title="Successful Pickups"
+                value={completed}
+                icon={<CheckCircle />}
+                color="blue"
+              />
+
+              <StatCard
+                title="Missed Pickups"
+                value={missed}
+                icon={<AlertTriangle />}
+                color="red"
+              />
+
+              <StatCard
+                title="Resolved Complaints"
+                value={resolved}
+                icon={<CheckCircle />}
+                color="orange"
+              />
+            </div>
+
+            <div className="content-card">
+              <h3>Collection Performance Report</h3>
+              <h2 className="report-rate">{completionRate}%</h2>
+              <p className="muted">Pickup completion rate</p>
+
+              <div className="progress-track">
+                <div
+                  className="progress-fill"
+                  style={{ width: `${Math.min(completionRate, 100)}%` }}
+                />
+              </div>
+
+              <br />
+              <button
+                className="primary-button"
+                onClick={() => window.print()}
+              >
+                Print Report
+              </button>
+            </div>
+          </>
+        )}
+
+        <footer className="footer">
+          © 2026 WasteTrack | Smart Waste Collection Verification System
+        </footer>
+
+      </main>
+    </div>
+  );
+}
+
+// REUSABLE COMPONENTS
+
+function StatCard({
+  title,
+  value,
+  icon,
+  color
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+}) {
+  return (
+    <div className="stat-card">
+      <div className={`stat-icon ${color}`}>{icon}</div>
+      <p>{title}</p>
+      <h2>{value}</h2>
+    </div>
+  );
+}
+
+function FormInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text"
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <div className="form-group">
+      <label>{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        required
+      />
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`status-badge ${status.toLowerCase()}`}>
+      {status}
+    </span>
+  );
+}
+
+function PickupTable({ pickups }: { pickups: Pickup[] }) {
+  return (
+    <div className="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Location</th>
+            <th>Vehicle</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {pickups.map(p => (
+            <tr key={p.id}>
+              <td><MapPin size={14} className="inline-icon" /> {p.location}</td>
+              <td>{p.vehicle}</td>
+              <td><StatusBadge status={p.status} /></td>
+              <td>
+                {p.status === "Pending" ? (
+                  <div className="action-group">
+                    <button
+                      className="small-button"
+                      onClick={() => updatePickup(p.id, "Completed")}
+                    >
+                      Verify
+                    </button>
+                    <button
+                      className="small-button danger-button"
+                      onClick={() => updatePickup(p.id, "Missed")}
+                    >
+                      Missed
+                    </button>
+                  </div>
+                ) : (
+                  <span className="muted">Recorded</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default App;
