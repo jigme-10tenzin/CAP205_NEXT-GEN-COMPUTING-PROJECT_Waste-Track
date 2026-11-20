@@ -1,0 +1,63 @@
+
+import {
+  LayoutDashboard,
+  CalendarDays,
+  ClipboardCheck,
+  AlertTriangle,
+  MessageSquare,
+  BarChart3,
+  Recycle
+} from "lucide-react";
+
+interface SidebarProps {
+  activePage: string;
+  setActivePage: (page: string) => void;
+}
+
+const menuItems = [
+  { name: "Dashboard", icon: LayoutDashboard },
+  { name: "Schedule", icon: CalendarDays },
+  { name: "Verification", icon: ClipboardCheck },
+  { name: "Complaints", icon: MessageSquare },
+  { name: "Alerts", icon: AlertTriangle },
+  { name: "Reports", icon: BarChart3 }
+];
+
+function Sidebar({ activePage, setActivePage }: SidebarProps) {
+  return (
+    <aside className="sidebar">
+      <div className="logo">
+        <Recycle size={30} />
+        <span>WasteTrack</span>
+      </div>
+
+      <p className="menu-title">MAIN MENU</p>
+
+      <nav>
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <button
+              key={item.name}
+              className={
+                activePage === item.name ? "nav-item active" : "nav-item"
+              }
+              onClick={() => setActivePage(item.name)}
+            >
+              <Icon size={19} />
+              <span>{item.name}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="sidebar-footer">
+        <Recycle size={17} />
+        <span>Smart & Clean City</span>
+      </div>
+    </aside>
+  );
+}
+
+export default Sidebar;
